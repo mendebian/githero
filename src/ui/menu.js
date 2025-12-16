@@ -1,5 +1,6 @@
 import inquirer from 'inquirer'
 import fs from 'fs'
+import { execa } from 'execa'
 import { getRepoState } from '../core/state.js'
 import { git } from '../utils/git.js'
 import { commit } from '../actions/commit.js'
@@ -11,35 +12,33 @@ import { logMenu } from '../actions/log.js'
 import { clean } from '../actions/clean.js'
 import { nuclearMenu } from '../actions/nuclear.js'
 
+function detectGitignore() {
+  if (fs.existsSync('package.json')) {
+    return 'node_modules\n.env\ndist\n'
+  }
+  if (fs.existsSync('pyproject.toml') || fs.existsSync('requirements.txt')) {
+    return '__pycache__\n.env\n.venv\n'
+  }
+  if (fs.existsSync('go.mod')) {
+    return 'bin/\n'
+  }
+  return '.DS_Store\n'
+}
+
 export async function mainMenu() {
   const state = await getRepoState()
 
-  // 🆕 Auto init + branch + gitignore
+  // INIT FLOW
   if (!state.initialized) {
-    const { init } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'init',
-        message: 'No Git repository detected. Initialize Git here?',
-        default: true
-      }
-    ])
-
-    if (!init) return
-
     await git(['init'])
     await git(['branch', '-M', 'main'])
 
     if (!fs.existsSync('.gitignore')) {
-      fs.writeFileSync(
-        '.gitignore',
-        `node_modules
-.env
-dist
-.DS_Store
-`
-      )
+      fs.writeFileSync('.gitignore', detectGitignore())
     }
+
+    await git(['add', '.'])
+    await git(['commit', '-m', 'chore: initial commit'])
 
     return mainMenu()
   }
@@ -48,11 +47,14 @@ dist
     {
       type: 'list',
       name: 'action',
-      message: `Branch: ${state.branch} | ${state.files.length} changes`,
+      message: `Branch: ${state.branch}`,
       choices: [
+        'Save work (commit + push)',
+        'Sync repo (pull + push)',
+        'Clean slate (stash + pull + pop)',
         'Commit changes',
         'Push',
-        'Pull (rebase)',
+        'Pull',
         'Switch / Create branch',
         'Stash changes',
         'View history',
@@ -63,10 +65,28 @@ dist
     }
   ])
 
+  if (action === 'Save work') {
+    await commit()
+    return mainMenu()
+  }
+
+  if (action === 'Sync repo') {
+    await pull()
+    await push()
+    return mainMenu()
+  }
+
+  if (action === 'Clean slate') {
+    await git(['stash'])
+    await pull()
+    await git(['stash', 'pop'])
+    return mainMenu()
+  }
+
   const map = {
     'Commit changes': commit,
     'Push': push,
-    'Pull (rebase)': pull,
+    'Pull': pull,
     'Switch / Create branch': branchMenu,
     'Stash changes': stashMenu,
     'View history': logMenu,
