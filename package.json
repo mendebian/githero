@@ -1,12 +1,24 @@
 {
-  "name": "githero",
+  "name": "githero-cli",
   "version": "0.1.0",
   "description": "The Git CLI that reads your mind",
   "type": "module",
   "bin": {
     "gh": "bin/gh.js",
-    "guthero": "bin/gh.js"
+    "githero": "bin/gh.js"
   },
+  "files": [
+    "bin",
+    "src"
+  ],
+  "keywords": [
+    "git",
+    "cli",
+    "github",
+    "developer-tools",
+    "terminal"
+  ],
+  "license": "MIT",
   "dependencies": {
     "chalk": "^5.3.0",
     "execa": "^8.0.1",

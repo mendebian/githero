@@ -1,6 +1,5 @@
 import inquirer from 'inquirer'
 import fs from 'fs'
-import { execa } from 'execa'
 import { getRepoState } from '../core/state.js'
 import { git } from '../utils/git.js'
 import { commit } from '../actions/commit.js'
@@ -11,6 +10,7 @@ import { stashMenu } from '../actions/stash.js'
 import { logMenu } from '../actions/log.js'
 import { clean } from '../actions/clean.js'
 import { nuclearMenu } from '../actions/nuclear.js'
+import { cloneRepo } from '../actions/clone.js'
 
 function detectGitignore() {
   if (fs.existsSync('package.json')) {
@@ -28,19 +28,37 @@ function detectGitignore() {
 export async function mainMenu() {
   const state = await getRepoState()
 
-  // INIT FLOW
+  // CLONE FLOW (fora de repo)
   if (!state.initialized) {
-    await git(['init'])
-    await git(['branch', '-M', 'main'])
+    const { action } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'action',
+        message: 'No Git repository detected',
+        choices: ['Initialize new repository', 'Clone repository', 'Exit']
+      }
+    ])
 
-    if (!fs.existsSync('.gitignore')) {
-      fs.writeFileSync('.gitignore', detectGitignore())
+    if (action === 'Clone repository') {
+      await cloneRepo()
+      return mainMenu()
     }
 
-    await git(['add', '.'])
-    await git(['commit', '-m', 'chore: initial commit'])
+    if (action === 'Initialize new repository') {
+      await git(['init'])
+      await git(['branch', '-M', 'main'])
 
-    return mainMenu()
+      if (!fs.existsSync('.gitignore')) {
+        fs.writeFileSync('.gitignore', detectGitignore())
+      }
+
+      await git(['add', '.'])
+      await git(['commit', '-m', 'chore: initial commit'])
+
+      return mainMenu()
+    }
+
+    return
   }
 
   const { action } = await inquirer.prompt([
@@ -49,7 +67,7 @@ export async function mainMenu() {
       name: 'action',
       message: `Branch: ${state.branch}`,
       choices: [
-        'Commit changes',
+        'Commit',
         'Push',
         'Pull',
         'Switch / Create branch',
@@ -63,9 +81,9 @@ export async function mainMenu() {
   ])
 
   const map = {
-    'Commit changes': commit,
-    'Push': push,
-    'Pull': pull,
+    Commit: commit,
+    Push: push,
+    Pull: pull,
     'Switch / Create branch': branchMenu,
     'Stash changes': stashMenu,
     'View history': logMenu,

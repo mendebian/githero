@@ -1,42 +1,43 @@
-import inquirer from 'inquirer'
-import ora from 'ora'
-import { execa } from 'execa'
-import { git } from '../utils/git.js'
+import inquirer from "inquirer";
+import ora from "ora";
+import { execa } from "execa";
+import { git } from "../utils/git.js";
 
-export async function commit({ autoPush = true } = {}) {
+export async function commit() {
   const { message } = await inquirer.prompt([
     {
-      type: 'input',
-      name: 'message',
-      message: 'Commit message:',
-      validate: m => m.length > 0
-    }
-  ])
+      type: "input",
+      name: "message",
+      message: "Commit message:",
+      validate: (m) => m.length > 0,
+    },
+  ]);
 
-  const spinner = ora('Creating commit...').start()
+  const spinner = ora("Creating commit...").start();
 
-  await git(['add', '.'])
-  await git(['commit', '-m', message])
+  await git(["add", "."]);
+  await git(["commit", "-m", message]);
 
-  spinner.succeed('Commit created')
+  spinner.succeed("Commit created");
 
-  if (!autoPush) return
-
+  // detect remote
   try {
-    await git(['push'])
-  } catch {
+    const { stdout } = await execa("git", ["remote"]);
+    if (!stdout.includes("origin")) return;
+
     const { push } = await inquirer.prompt([
       {
-        type: 'confirm',
-        name: 'push',
-        message: 'No upstream found. Push and set upstream?',
-        default: true
-      }
-    ])
+        type: "confirm",
+        name: "push",
+        message: "Push commit to origin?",
+        default: true,
+      },
+    ]);
 
     if (push) {
-      const { stdout: branch } = await execa('git', ['branch', '--show-current'])
-      await git(['push', '-u', 'origin', branch])
+      await git(["push"]);
     }
+  } catch {
+    // silently ignore
   }
 }
