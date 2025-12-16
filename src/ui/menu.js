@@ -49,9 +49,6 @@ export async function mainMenu() {
       name: 'action',
       message: `Branch: ${state.branch}`,
       choices: [
-        'Save work (commit + push)',
-        'Sync repo (pull + push)',
-        'Clean slate (stash + pull + pop)',
         'Commit changes',
         'Push',
         'Pull',
@@ -64,24 +61,6 @@ export async function mainMenu() {
       ]
     }
   ])
-
-  if (action === 'Save work') {
-    await commit()
-    return mainMenu()
-  }
-
-  if (action === 'Sync repo') {
-    await pull()
-    await push()
-    return mainMenu()
-  }
-
-  if (action === 'Clean slate') {
-    await git(['stash'])
-    await pull()
-    await git(['stash', 'pop'])
-    return mainMenu()
-  }
 
   const map = {
     'Commit changes': commit,
