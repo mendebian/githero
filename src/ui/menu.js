@@ -5,6 +5,7 @@ import { git } from "../utils/git.js";
 import { commit } from "../actions/commit.js";
 import { push } from "../actions/push.js";
 import { pull } from "../actions/pull.js";
+import { reset } from "../actions/reset.js";
 import { branchMenu } from "../actions/branch.js";
 import { stashMenu } from "../actions/stash.js";
 import { logMenu } from "../actions/log.js";
@@ -75,6 +76,7 @@ export async function mainMenu() {
         "Stash changes",
         "View history",
         "Clean untracked files",
+        "Nuclear options ☢",
         "Exit",
       ],
     },
