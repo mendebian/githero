@@ -20,7 +20,6 @@ export async function commit() {
 
   spinner.succeed("Commit created");
 
-  // detect remote
   try {
     const { stdout } = await execa("git", ["remote"]);
     if (!stdout.includes("origin")) return;
